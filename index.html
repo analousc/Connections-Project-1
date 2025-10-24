@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Archive System</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #141414;
+            border: 1px solid #2a2a2a;
+        }
+        
+        .header {
+            background: #000;
+            color: #fff;
+            padding: 30px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        
+        h1 {
+            font-size: 1.8em;
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        
+        .header p {
+            margin-top: 8px;
+            font-size: 0.85em;
+            color: #888;
+            font-weight: 300;
+        }
+        
+        .upload-section {
+            padding: 30px;
+            background: #0f0f0f;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        
+        .upload-box {
+            border: 2px dashed #333;
+            padding: 50px;
+            text-align: center;
+            background: #000;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upload-box:hover {
+            border-color: #555;
+            background: #0a0a0a;
+        }
+        
+        .upload-box.dragover {
+            border-color: #888;
+            background: #1a1a1a;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .upload-text {
+            font-size: 0.9em;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 20px;
+            background: #000;
+            border-bottom: 1px solid #2a2a2a;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+        }
+        
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid #333;
+        }
+        
+        .green { background: #4ade80; box-shadow: 0 0 8px rgba(74, 222, 128, 0.4); }
+        .yellow { background: #fbbf24; box-shadow: 0 0 8px rgba(251, 191, 36, 0.4); }
+        .red { background: #f87171; box-shadow: 0 0 8px rgba(248, 113, 113, 0.4); }
+        
+        #canvas {
+            width: 100%;
+            height: 600px;
+            background: #000;
+            position: relative;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        
+        .photo-dot {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .photo-dot:hover {
+            transform: scale(1.15);
+            z-index: 10;
+        }
+        
+        .photo-dot.selected {
+            animation: pulse 2s infinite;
+            z-index: 11;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(255, 255, 255, 0); }
+        }
+        
+        .info-panel {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            color: #e0e0e0;
+            padding: 20px;
+            border: 1px solid #333;
+            max-width: 320px;
+            display: none;
+            z-index: 100;
+            font-size: 0.8em;
+            backdrop-filter: blur(10px);
+        }
+        
+        .info-panel h3 {
+            margin-bottom: 15px;
+            color: #fff;
+            font-weight: 400;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .info-panel p {
+            margin: 8px 0;
+            color: #888;
+            line-height: 1.6;
+        }
+        
+        .info-panel strong {
+            color: #bbb;
+            font-weight: 400;
+        }
+        
+        .info-panel hr {
+            margin: 15px 0;
+            border: none;
+            border-top: 1px solid #333;
+        }
+        
+        .stats {
+            padding: 25px;
+            background: #000;
+            display: flex;
+            justify-content: space-around;
+            font-size: 0.8em;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: 300;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Archive System</h1>
+            <p>Image classification and analysis protocol</p>
+        </div>
+        
+        <div class="upload-section">
+            <div class="upload-box" id="uploadBox">
+                <div class="upload-text">Drop files here or click to select</div>
+                <input type="file" id="fileInput" accept="image/*" multiple>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="dot green"></div>
+                <span>Approved</span>
+            </div>
+            <div class="legend-item">
+                <div class="dot yellow"></div>
+                <span>Restricted</span>
+            </div>
+            <div class="legend-item">
+                <div class="dot red"></div>
+                <span>Denied</span>
+            </div>
+            <div class="legend-item">
+                <span>Size = Quality Index</span>
+            </div>
+        </div>
+        
+        <div id="canvas">
+            <div class="info-panel" id="infoPanel"></div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="greenCount">0</div>
+                <div class="stat-label">Approved</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="yellowCount">0</div>
+                <div class="stat-label">Restricted</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="redCount">0</div>
+                <div class="stat-label">Denied</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const photos = [];
+        const canvas = document.getElementById('canvas');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBox = document.getElementById('uploadBox');
+        const infoPanel = document.getElementById('infoPanel');
+        
+        uploadBox.addEventListener('click', () => fileInput.click());
+        
+        uploadBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadBox.classList.add('dragover');
+        });
+        
+        uploadBox.addEventListener('dragleave', () => {
+            uploadBox.classList.remove('dragover');
+        });
+        
+        uploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadBox.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+        
+        function handleFiles(files) {
+            Array.from(files).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    processImage(file);
+                }
+            });
+        }
+        
+        function processImage(file) {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const assessment = assessImage(img, file);
+                    
+                    const photo = {
+                        id: Date.now() + Math.random(),
+                        filename: file.name,
+                        image: img,
+                        permission: assessment.permission,
+                        quality: assessment.quality,
+                        uploadDate: new Date().toLocaleString(),
+                        size: file.size,
+                        dimensions: `${img.width}x${img.height}`,
+                        assessment: assessment
+                    };
+                    
+                    photos.push(photo);
+                    addDotToCanvas(photo);
+                    updateStats();
+                };
+                img.src = e.target.result;
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        function assessImage(img, file) {
+            let quality = 0;
+            let permission = 'green';
+            let reasons = [];
+            
+            const width = img.width;
+            const height = img.height;
+            const megapixels = (width * height) / 1000000;
+            
+            if (megapixels > 8) {
+                quality += 0.4;
+                reasons.push('High resolution');
+            } else if (megapixels > 3) {
+                quality += 0.25;
+                reasons.push('Standard resolution');
+            } else {
+                quality += 0.1;
+                reasons.push('Low resolution');
+            }
+            
+            const sizeMB = file.size / (1024 * 1024);
+            if (sizeMB > 2) {
+                quality += 0.3;
+                reasons.push('High quality file');
+            } else if (sizeMB > 0.5) {
+                quality += 0.2;
+            } else {
+                quality += 0.05;
+                reasons.push('Compressed');
+            }
+            
+            const aspectRatio = width / height;
+            if (aspectRatio > 0.75 && aspectRatio < 1.5) {
+                quality += 0.15;
+                reasons.push('Standard aspect ratio');
+            } else {
+                quality += 0.05;
+            }
+            
+            const filename = file.name.toLowerCase();
+            if (filename.includes('img_') || filename.includes('dsc_')) {
+                quality += 0.05;
+            } else {
+                quality += 0.15;
+                reasons.push('Named file');
+            }
+            
+            quality = Math.min(quality, 1.0);
+            
+            const rand = Math.random();
+            
+            if (quality < 0.3) {
+                permission = 'red';
+                reasons.push('Quality threshold not met');
+            } else if (filename.includes('private') || filename.includes('personal')) {
+                permission = 'red';
+                reasons.push('Private content');
+            } else if (quality < 0.6 || rand < 0.3) {
+                permission = 'yellow';
+                reasons.push('Limited clearance');
+            } else {
+                permission = 'green';
+                reasons.push('Cleared for use');
+            }
+            
+            return { quality, permission, reasons };
+        }
+        
+        function addDotToCanvas(photo) {
+            const dot = document.createElement('div');
+            dot.className = 'photo-dot';
+            
+            const size = 15 + (photo.quality * 35);
+            dot.style.width = size + 'px';
+            dot.style.height = size + 'px';
+            
+            const colors = {
+                'green': '#4ade80',
+                'yellow': '#fbbf24',
+                'red': '#f87171'
+            };
+            dot.style.backgroundColor = colors[photo.permission];
+            
+            const canvasRect = canvas.getBoundingClientRect();
+            const x = 30 + Math.random() * (canvasRect.width - 60);
+            const y = 30 + Math.random() * (canvasRect.height - 60);
+            
+            dot.style.left = x + 'px';
+            dot.style.top = y + 'px';
+            
+            dot.addEventListener('click', (e) => {
+                showInfo(photo, e.pageX, e.pageY);
+                document.querySelectorAll('.photo-dot').forEach(d => d.classList.remove('selected'));
+                dot.classList.add('selected');
+            });
+            
+            canvas.appendChild(dot);
+        }
+        
+        function showInfo(photo, x, y) {
+            const permissionText = {
+                'green': 'APPROVED',
+                'yellow': 'RESTRICTED',
+                'red': 'DENIED'
+            };
+            
+            infoPanel.innerHTML = `
+                <h3>${photo.filename}</h3>
+                <p><strong>Status:</strong> ${permissionText[photo.permission]}</p>
+                <p><strong>Quality:</strong> ${Math.round(photo.quality * 100)}%</p>
+                <p><strong>Resolution:</strong> ${photo.dimensions}</p>
+                <p><strong>Size:</strong> ${(photo.size / 1024).toFixed(1)} KB</p>
+                <p><strong>Uploaded:</strong> ${photo.uploadDate}</p>
+                <hr>
+                <p style="font-size: 0.9em; opacity: 0.7;">${photo.assessment.reasons.join(' / ')}</p>
+            `;
+            
+            infoPanel.style.display = 'block';
+            infoPanel.style.left = (x + 15) + 'px';
+            infoPanel.style.top = (y - 50) + 'px';
+        }
+        
+        canvas.addEventListener('click', (e) => {
+            if (e.target === canvas) {
+                infoPanel.style.display = 'none';
+                document.querySelectorAll('.photo-dot').forEach(d => d.classList.remove('selected'));
+            }
+        });
+        
+        function updateStats() {
+            document.getElementById('totalCount').textContent = photos.length;
+            document.getElementById('greenCount').textContent = 
+                photos.filter(p => p.permission === 'green').length;
+            document.getElementById('yellowCount').textContent = 
+                photos.filter(p => p.permission === 'yellow').length;
+            document.getElementById('redCount').textContent = 
+                photos.filter(p => p.permission === 'red').length;
+        }
+    </script>
+</body>
+</html>
+
+//references https://developer.mozilla.org/en-US/docs/Web/API/HTML_Drag_and_Drop_API
+//references https://javascript.info/file 
+//references https://developer.mozilla.org/en-US/docs/Web/API/File_API
+https://developer.mozilla.org/en-US/docs/Web/API/File_API/Using_files_from_web_applications
+//references https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math
+https://javascript.info/number
+//references https://developer.mozilla.org/en-US/docs/Web/API/FileReader
+https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsDataURL
